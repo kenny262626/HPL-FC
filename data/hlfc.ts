@@ -1,4 +1,4 @@
-// src/data/hlfc.ts
+﻿// src/data/hlfc.ts
 
 export const TEAM_MEMBERS = [
   { rank: 1,  name: '홍강현', attend: 12, score: 30, rate: 92.3, avClass: 'av1' },
@@ -15,7 +15,29 @@ export const TEAM_MEMBERS = [
   { rank: 12, name: '김종원', attend: 21, score: 46, rate: 65.6, avClass: 'av12' },
 ];
 
-export const MATCH_HISTORY = [
+
+// ===== 매치 기록 타입 =====
+interface MatchHistory {
+  id: number;
+  date: string;
+  result: 'win' | 'lose' | 'draw';
+  score: string;
+  members: string[];
+  hasPhoto: boolean;
+  title?: string;  // ✅ 선택적 속성 추가
+}
+
+export const MATCH_HISTORY: MatchHistory[] = [
+  {
+    id: 1,
+    date: '2025년 3월 22일 (토)',
+    result: 'win',
+    score: '7 : 4',
+    members: ['홍강현','오승엽','김연호','유승한','강태훈','진대철','오승영','최상원','김성진','이도훈'],
+    hasPhoto: true,
+  },
+  // ... 나머지 동일
+
   {
     id: 1,
     date: '2025년 3월 22일 (토)',
@@ -78,3 +100,4 @@ export const GAME_RECORDS = [
     teamB: { name: 'B팀', members: ['오승영','최상원','박재현','김종원','이도훈'], score: 6 },
   },
 ];
+
