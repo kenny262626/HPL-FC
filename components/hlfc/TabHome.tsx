@@ -1,76 +1,59 @@
-// src/components/hlfc/TabHome.tsx
-export default function TabHome() {
+"use client";
+import { useState } from "react";
+import VoteModal from "./VoteModal";
+
+interface Props { userName: string; }
+
+export default function TabHome({ userName }: Props) {
+  const [voted, setVoted] = useState<null | "attend" | "absent">(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const match = { date: "2026-04-12", time: "10:00", place: "상암 풋살파크", method: "5vs5" };
+
   return (
-    <div id="tabHome" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <div className="top-header">
-        <div className="header-logo">HLFC</div>
-        <div className="header-right">
-          <div className="icon-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+    <div style={{ padding: "24px 16px 100px" }}>
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ color: "#888", fontSize: 12, letterSpacing: 2 }}>WELCOME BACK</p>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#FFD700" }}>{userName}</h2>
+      </div>
+
+      {/* Upcoming Card */}
+      <div style={{ background: "#141414", border: "1px solid #2a2a2a", borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ background: "linear-gradient(135deg, #1a1a00, #2a1a00)", padding: "14px 18px", borderBottom: "1px solid #FFD70033" }}>
+          <span style={{ color: "#FFD700", fontSize: 11, letterSpacing: 3, fontWeight: 700 }}>UPCOMING MATCH</span>
+        </div>
+        <div style={{ padding: 18 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { label: "날짜", value: match.date },
+              { label: "시간", value: match.time },
+              { label: "장소", value: match.place },
+              { label: "방식", value: match.method },
+            ].map(r => (
+              <div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#888", fontSize: 13 }}>{r.label}</span>
+                <span style={{ color: "#f0f0f0", fontSize: 13, fontWeight: 500 }}>{r.value}</span>
+              </div>
+            ))}
           </div>
+
+          {!voted ? (
+            <button onClick={() => setShowModal(true)} style={{ marginTop: 18, width: "100%", background: "linear-gradient(135deg, #FFD700, #FFA500)", border: "none", borderRadius: 10, color: "#1a0a00", padding: "13px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "Noto Sans KR, sans-serif" }}>
+              출석 투표하기
+            </button>
+          ) : (
+            <div style={{ marginTop: 18, textAlign: "center", padding: "12px", background: voted === "attend" ? "#0f01" : "#f001", border: `1px solid ${voted === "attend" ? "#0f0" : "#f00"}`, borderRadius: 10 }}>
+              <span style={{ color: voted === "attend" ? "#0f0" : "#f66", fontWeight: 700 }}>
+                {voted === "attend" ? "출석 투표 완료!" : "불참 투표 완료!"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="scroll-area">
-        {/* 다음 매치 카드 */}
-        <div className="section">
-          <div className="section-title">NEXT MATCH</div>
-          <div className="next-match-card">
-            <div className="match-badge">
-              <div className="match-badge-dot"></div>
-              <div className="match-badge-text">UPCOMING</div>
-            </div>
-            <div className="match-title">정기 풋살 매치</div>
-            <div className="match-date" id="homeMatchDate"></div>
-            <div className="match-info-row">
-              <div className="match-info-item">
-                <div className="match-info-label">장소</div>
-                <div className="match-info-val">월드컵 풋살장</div>
-              </div>
-              <div className="match-info-item">
-                <div className="match-info-label">시간</div>
-                <div className="match-info-val">20:00</div>
-              </div>
-              <div className="match-info-item">
-                <div className="match-info-label">방식</div>
-                <div className="match-info-val">6vs6</div>
-              </div>
-            </div>
-            <div className="vote-status-row">
-              <div className="vote-chip attend">
-                <div className="vote-chip-num" id="voteAttendCount">0</div>
-                <div className="vote-chip-label">출석</div>
-              </div>
-              <div className="vote-chip absent">
-                <div className="vote-chip-num" id="voteAbsentCount">0</div>
-                <div className="vote-chip-label">불참</div>
-              </div>
-              <div className="vote-chip pending">
-                <div className="vote-chip-num" id="votePendingCount">12</div>
-                <div className="vote-chip-label">미투표</div>
-              </div>
-            </div>
-            <button className="btn-check">출석 확인하기</button>
-          </div>
-        </div>
-
-        {/* 점수 규칙 */}
-        <div className="section">
-          <div className="section-title">점수 규칙</div>
-          <div className="rules-card">
-            <div className="rule-row"><span className="rule-name">첫 출석</span><span className="rule-score pos">+1점</span></div>
-            <div className="rule-row"><span className="rule-name">연속 2회 출석</span><span className="rule-score pos">+2점</span></div>
-            <div className="rule-row"><span className="rule-name">연속 3회 이상 출석</span><span className="rule-score pos">+3점</span></div>
-            <div className="rule-row"><span className="rule-name">용병 출석</span><span className="rule-score pos">+3점</span></div>
-            <div className="rule-row"><span className="rule-name">지각</span><span className="rule-score neg">-0.5점</span></div>
-            <div className="rule-row"><span className="rule-name">노쇼</span><span className="rule-score neg">-1점</span></div>
-            <div className="rule-row"><span className="rule-name">결석</span><span className="rule-score">0점</span></div>
-          </div>
-        </div>
-      </div>
+      {showModal && (
+        <VoteModal onClose={() => setShowModal(false)} onVote={(v) => { setVoted(v); setShowModal(false); }} />
+      )}
     </div>
   );
 }
