@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getDb, initDB } from '@/lib/db';
 import { DATA, MEMBERS } from '@/lib/data';
@@ -8,14 +10,19 @@ export async function GET() {
     const sql = getDb();
 
     const history = await sql`SELECT date, attendees FROM match_history ORDER BY date ASC`;
-    const hardcodedDates = [...new Set(DATA.map(r => r.date))].sort();
-    const lastHardcodedDate = hardcodedDates[hardcodedDates.length - 1] || '';
-    const newMatches = history.filter((h: Record<string, unknown>) => (h.date as string) > lastHardcodedDate);
+
+    // 하드코딩 데이터의 날짜 목록
+    const hardcodedDates = new Set(DATA.map(r => r.date));
+    const lastHardcodedDate = [...hardcodedDates].sort().pop() || '';
+
+    // DB에서 하드코딩 이후 날짜만 새 경기로 사용
+    const newMatches = (history as Record<string, unknown>[]).filter(h => (h.date as string) > lastHardcodedDate);
 
     interface MS { attend: number; total: number; score: number; lastScore: number; }
     const stats: Record<string, MS> = {};
     MEMBERS.forEach(m => { stats[m] = { attend: 0, total: 0, score: 0, lastScore: 0 }; });
 
+    // 하드코딩 데이터 처리
     [...DATA].sort((a, b) => a.date.localeCompare(b.date)).forEach(r => {
       if (!stats[r.name]) return;
       stats[r.name].total++;
@@ -28,6 +35,7 @@ export async function GET() {
       }
     });
 
+    // DB 새 경기 처리 - total도 DB 기준으로 정확히 계산
     for (const match of newMatches) {
       const attendees: string[] = Array.isArray(match.attendees) ? match.attendees as string[] : [];
       MEMBERS.forEach(m => {
