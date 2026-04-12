@@ -40,6 +40,7 @@ export async function initDB() {
     end_time TEXT,
     method TEXT,
     score_us INTEGER DEFAULT 0,
+    score_draw INTEGER DEFAULT 0,
     score_them INTEGER DEFAULT 0,
     attendees TEXT[],
     photos TEXT[],

@@ -14,17 +14,11 @@ export async function PATCH(req: NextRequest) {
   try {
     await initDB();
     const sql = getDb();
-    const { id, date, place, startTime, endTime, method, scoreUs, scoreThem, attendees, photos } = await req.json();
+    const { id, date, place, startTime, endTime, method, scoreUs, scoreDraw, scoreThem, attendees, photos } = await req.json();
     await sql`UPDATE match_history SET
-      date=${date},
-      place=${place},
-      start_time=${startTime},
-      end_time=${endTime},
-      method=${method},
-      score_us=${scoreUs},
-      score_them=${scoreThem},
-      attendees=${attendees},
-      photos=${photos}
+      date=${date}, place=${place}, start_time=${startTime}, end_time=${endTime},
+      method=${method}, score_us=${scoreUs}, score_draw=${scoreDraw ?? 0}, score_them=${scoreThem},
+      attendees=${attendees}, photos=${photos}
       WHERE id=${id}`;
     return NextResponse.json({ success: true });
   } catch (e) { console.error(e); return NextResponse.json({ error: '서버 오류' }, { status: 500 }); }

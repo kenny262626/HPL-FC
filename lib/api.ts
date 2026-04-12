@@ -62,10 +62,10 @@ export async function apiGetMatchHistory(): Promise<MatchHistoryItem[]> {
 
 export async function apiUpdateMatch(
   id: number, date: string, place: string, startTime: string, endTime: string,
-  method: string, scoreUs: number, scoreThem: number, attendees: string[], photos: string[]
+  method: string, scoreUs: number, scoreThem: number, attendees: string[], photos: string[], scoreDraw = 0
 ) {
   const res = await fetch('/api/matches', { method:'PATCH', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id,date,place,startTime,endTime,method,scoreUs,scoreThem,attendees,photos}) });
+    body:JSON.stringify({id,date,place,startTime,endTime,method,scoreUs,scoreDraw,scoreThem,attendees,photos}) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || '수정 실패');
   return data;

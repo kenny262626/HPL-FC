@@ -8,15 +8,9 @@ import BottomNav from './BottomNav';
 type Screen = 'home' | 'vote' | 'team' | 'match' | 'admin';
 interface Props { canEdit: boolean; onNavigate: (s: Screen) => void; showToast: (m: string) => void; }
 
-function getResult(us: number, them: number) {
-  if (us > them) return { text: '승', color: 'var(--green)' };
-  if (us < them) return { text: '패', color: 'var(--red)' };
-  return { text: null, color: '#aaa' };
-}
-
 interface EditState {
   date: string; place: string; startTime: string; endTime: string; method: string;
-  scoreUs: number; scoreThem: number; attendees: string[]; photos: string[];
+  scoreUs: number; scoreDraw: number; scoreThem: number; attendees: string[]; photos: string[];
 }
 
 export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
@@ -30,10 +24,14 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
 
   function openEdit(m: MatchHistoryItem) {
     setEditId(m.id);
+    // score_them을 무승부 점수로 활용: score_us=승, score_them=패, score_draw(없으면 0)
+    const parts = (m.method || '').match(/^(\d+):(\d+):(\d+)$/);
     setEdit({
       date: m.date || '', place: m.place || '', startTime: m.start_time || '',
-      endTime: m.end_time || '', method: m.method || '',
-      scoreUs: m.score_us || 0, scoreThem: m.score_them || 0,
+      endTime: m.end_time || '', method: parts ? '' : (m.method || ''),
+      scoreUs: m.score_us || 0,
+      scoreDraw: (m as unknown as Record<string, number>).score_draw || 0,
+      scoreThem: m.score_them || 0,
       attendees: m.attendees || [], photos: m.photos || [],
     });
   }
@@ -42,7 +40,7 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
     if (!edit || editId === null) return;
     try {
       await apiUpdateMatch(editId, edit.date, edit.place, edit.startTime, edit.endTime,
-        edit.method, edit.scoreUs, edit.scoreThem, edit.attendees, edit.photos);
+        edit.method, edit.scoreUs, edit.scoreThem, edit.attendees, edit.photos, edit.scoreDraw);
       showToast('저장됐습니다!');
       setEditId(null); setEdit(null);
       apiGetMatchHistory().then(setMatches);
@@ -93,7 +91,10 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
         <div style={{padding:'16px 24px',display:'flex',flexDirection:'column',gap:16}}>
           {matches.map((m) => {
             const isEditing = editId === m.id;
-            const res = getResult(m.score_us || 0, m.score_them || 0);
+            const scoreDraw = (m as unknown as Record<string, number>).score_draw || 0;
+            const us = m.score_us || 0;
+            const them = m.score_them || 0;
+
             return (
               <div key={m.id} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,overflow:'hidden'}}>
 
@@ -138,16 +139,32 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
                       <div style={{fontSize:10,color:'var(--sub)',marginBottom:4}}>방식</div>
                       <input type="text" value={edit.method} onChange={e=>setEdit({...edit,method:e.target.value})} className="admin-input" placeholder="예) 5vs5" style={{width:'100%'}}/>
                     </div>
+
+                    {/* 승:무:패 입력 */}
                     <div>
-                      <div style={{fontSize:10,color:'var(--sub)',marginBottom:6}}>스코어</div>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <input type="number" value={edit.scoreUs} onChange={e=>setEdit({...edit,scoreUs:Number(e.target.value)})}
-                          style={{width:60,background:'#1a1a1a',border:'1px solid var(--accent)',borderRadius:8,padding:'6px 8px',color:'var(--text)',fontSize:20,textAlign:'center'}}/>
-                        <span style={{color:'var(--sub)',fontSize:18}}>:</span>
-                        <input type="number" value={edit.scoreThem} onChange={e=>setEdit({...edit,scoreThem:Number(e.target.value)})}
-                          style={{width:60,background:'#1a1a1a',border:'1px solid var(--border)',borderRadius:8,padding:'6px 8px',color:'var(--text)',fontSize:20,textAlign:'center'}}/>
+                      <div style={{fontSize:10,color:'var(--sub)',marginBottom:8}}>스코어 (승 : 무 : 패)</div>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                          <input type="number" min="0" value={edit.scoreUs} onChange={e=>setEdit({...edit,scoreUs:Number(e.target.value)})}
+                            style={{width:'100%',background:'#1a1a1a',border:'1px solid var(--green)',borderRadius:8,padding:'8px',color:'var(--green)',fontSize:22,textAlign:'center'}}/>
+                          <span style={{fontSize:10,color:'var(--green)'}}>승</span>
+                        </div>
+                        <span style={{color:'var(--sub)',fontSize:20,marginBottom:16}}>:</span>
+                        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                          <input type="number" min="0" value={edit.scoreDraw} onChange={e=>setEdit({...edit,scoreDraw:Number(e.target.value)})}
+                            style={{width:'100%',background:'#1a1a1a',border:'1px solid #888',borderRadius:8,padding:'8px',color:'#aaa',fontSize:22,textAlign:'center'}}/>
+                          <span style={{fontSize:10,color:'#888'}}>무</span>
+                        </div>
+                        <span style={{color:'var(--sub)',fontSize:20,marginBottom:16}}>:</span>
+                        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                          <input type="number" min="0" value={edit.scoreThem} onChange={e=>setEdit({...edit,scoreThem:Number(e.target.value)})}
+                            style={{width:'100%',background:'#1a1a1a',border:'1px solid var(--red)',borderRadius:8,padding:'8px',color:'var(--red)',fontSize:22,textAlign:'center'}}/>
+                          <span style={{fontSize:10,color:'var(--red)'}}>패</span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* 출석 멤버 */}
                     <div>
                       <div style={{fontSize:10,color:'var(--sub)',marginBottom:6}}>출석 멤버 (클릭으로 선택)</div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
@@ -162,13 +179,12 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
                         ))}
                       </div>
                     </div>
+
                     {/* 사진 업로드 */}
                     <div>
                       <div style={{fontSize:10,color:'var(--sub)',marginBottom:6}}>사진</div>
-                      <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload}
-                        style={{display:'none'}}/>
-                      <button onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
+                      <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} style={{display:'none'}}/>
+                      <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
                         style={{width:'100%',background:'var(--card2)',border:'1px dashed var(--border)',borderRadius:10,padding:'12px',color:'var(--sub)',cursor:'pointer',fontSize:13}}>
                         {uploading ? '업로드 중...' : '📷 앨범에서 사진 추가'}
                       </button>
@@ -184,6 +200,7 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
                         </div>
                       )}
                     </div>
+
                     <div style={{display:'flex',gap:8,marginTop:4}}>
                       <button onClick={handleSave} style={{flex:1,background:'linear-gradient(135deg,var(--gold),var(--gold2))',border:'none',borderRadius:10,padding:'10px',color:'#000',fontWeight:900,cursor:'pointer',fontSize:13}}>저장</button>
                       <button onClick={() => {setEditId(null);setEdit(null);}} style={{flex:1,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:'10px',color:'var(--sub)',cursor:'pointer',fontSize:13}}>취소</button>
@@ -191,17 +208,23 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
                   </div>
                 )}
 
-                {/* 스코어 표시 */}
+                {/* 스코어 표시: 승 : 무 : 패 */}
                 {!isEditing && (
-                  <div style={{padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'center',gap:16}}>
-                    {res.text && (
-                      <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:20,color:res.color,background:`${res.color}18`,borderRadius:8,padding:'4px 12px'}}>
-                        {res.text}
-                      </div>
-                    )}
-                    <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:36,color:'var(--text)'}}>{m.score_us ?? '-'}</span>
-                    <span style={{fontSize:20,color:'var(--sub)'}}>:</span>
-                    <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:36,color:'var(--text)'}}>{m.score_them ?? '-'}</span>
+                  <div style={{padding:'16px',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                      <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:40,color:'var(--green)',lineHeight:1}}>{us}</span>
+                      <span style={{fontSize:10,color:'var(--green)'}}>승</span>
+                    </div>
+                    <span style={{color:'var(--sub)',fontSize:24,marginBottom:14}}>:</span>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                      <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:40,color:'#aaa',lineHeight:1}}>{scoreDraw}</span>
+                      <span style={{fontSize:10,color:'#888'}}>무</span>
+                    </div>
+                    <span style={{color:'var(--sub)',fontSize:24,marginBottom:14}}>:</span>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                      <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:40,color:'var(--red)',lineHeight:1}}>{them}</span>
+                      <span style={{fontSize:10,color:'var(--red)'}}>패</span>
+                    </div>
                   </div>
                 )}
 
