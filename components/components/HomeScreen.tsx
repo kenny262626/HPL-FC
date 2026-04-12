@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { apiGetVotes, apiGetMatch, apiGetStats, NextMatchData, RankedMemberFull } from '@/lib/api';
+import { apiGetVotes, apiGetMatch, NextMatchData } from '@/lib/api';
+import { getRankedMembers, getTierImage } from '@/lib/stats';
 import { MEMBERS } from '@/lib/data';
 import BottomNav from './BottomNav';
 
 type Screen = 'home' | 'vote' | 'team' | 'match' | 'admin';
+
 interface Props { userId: string; userName: string; memberName: string; onNavigate: (s: Screen) => void; }
 
 export default function HomeScreen({ userId, userName, memberName, onNavigate }: Props) {
@@ -14,24 +16,23 @@ export default function HomeScreen({ userId, userName, memberName, onNavigate }:
   const [attendCnt, setAttendCnt] = useState(0);
   const [absentCnt, setAbsentCnt] = useState(0);
   const [novoteCnt, setNovoteCnt] = useState(0);
-  const [me, setMe] = useState<RankedMemberFull | null>(null);
+  const [myStats, setMyStats] = useState({ attend: 0, rate: '0%', score: 0, tier: 'bronze' as string, rank: 0 });
 
   useEffect(() => {
     async function load() {
-      const [match, votes, stats] = await Promise.all([apiGetMatch(), apiGetVotes(), apiGetStats()]);
+      const [match, votes] = await Promise.all([apiGetMatch(), apiGetVotes()]);
       setNm(match);
       let ac = 0, ab = 0;
-      Object.values(votes).forEach(v => { if (v === 'attend') ac++; else if (v === 'absent') ab++; });
+      Object.values(votes).forEach((v) => { if (v === 'attend') ac++; else if (v === 'absent') ab++; });
       setAttendCnt(ac); setAbsentCnt(ab); setNovoteCnt(MEMBERS.length - ac - ab);
-      const found = stats.find(m => m.name === memberName);
-      if (found) setMe(found);
+      const ranked = getRankedMembers();
+      const me = ranked.find((m) => m.name === memberName);
+      if (me) setMyStats({ attend: me.attend, rate: me.rate + '%', score: me.score, tier: me.tier, rank: me.rank });
     }
     load();
   }, [memberName]);
 
   const timeStr = nm?.start_time && nm?.end_time ? `${nm.start_time} – ${nm.end_time}` : nm?.start_time || '시간 미정';
-  const tierColor = me?.tier === 'gold' ? '#FFD700' : me?.tier === 'silver' ? '#C0C0C0' : '#CD7F32';
-  const tierName = me?.tier === 'gold' ? '골드' : me?.tier === 'silver' ? '실버' : '브론즈';
 
   return (
     <div id="screen-home" className="screen active">
@@ -76,24 +77,18 @@ export default function HomeScreen({ userId, userName, memberName, onNavigate }:
         <div className="my-stats-card">
           <div className="my-stats-header">
             <div className="my-stats-title">{memberName || userName}</div>
-            {me && (
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                <Image src={`/images/${me.tier}.png`} alt={me.tier} width={28} height={28} style={{objectFit:'contain'}}/>
-                <span style={{fontSize:12,fontWeight:700,color:tierColor}}>{tierName}</span>
-              </div>
-            )}
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <Image src={getTierImage(myStats.tier as 'gold'|'silver'|'bronze')} alt={myStats.tier} width={28} height={28} style={{objectFit:'contain'}}/>
+              <span style={{fontSize:12,fontWeight:700,color:myStats.tier==='gold'?'#FFD700':myStats.tier==='silver'?'#C0C0C0':'#CD7F32'}}>
+                {myStats.tier==='gold'?'골드':myStats.tier==='silver'?'실버':'브론즈'}
+              </span>
+            </div>
           </div>
           <div className="stats-row">
-            <div className="stat-item"><div className="stat-num">{me?.attend||0}</div><div className="stat-label">출석 횟수</div></div>
-            <div className="stat-item"><div className="stat-num">{me ? me.rate+'%' : '0%'}</div><div className="stat-label">출석률</div></div>
-            <div className="stat-item"><div className="stat-num">{me?.score||0}</div><div className="stat-label">총 점수</div></div>
+            <div className="stat-item"><div className="stat-num">{myStats.attend}</div><div className="stat-label">출석 횟수</div></div>
+            <div className="stat-item"><div className="stat-num">{myStats.rate}</div><div className="stat-label">출석률</div></div>
+            <div className="stat-item"><div className="stat-num">{myStats.score}</div><div className="stat-label">총 점수</div></div>
           </div>
-          {me && (
-            <div style={{marginTop:12,background:'rgba(232,200,74,0.06)',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <span style={{fontSize:12,color:'var(--sub)'}}>다음 출석 시 예상 점수</span>
-              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:22,color:'var(--accent)'}}>{me.nextScore}점</span>
-            </div>
-          )}
         </div>
       </div>
       <BottomNav active="home" onNavigate={onNavigate} />

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { apiGetMatch, apiSaveMatch, apiGetUsers, apiSetCoach, apiSetMapping, apiUpdateProfile, apiGetStats, NextMatchData, RankedMemberFull } from '@/lib/api';
+import { apiGetMatch, apiSaveMatch, apiGetUsers, apiSetCoach, apiSetMapping, apiUpdateProfile, NextMatchData } from '@/lib/api';
+import { getRankedMembers, getTierImage } from '@/lib/stats';
 import { MEMBERS } from '@/lib/data';
 import BottomNav from './BottomNav';
 
@@ -45,7 +46,9 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
   const [showProfile, setShowProfile] = useState(false);
   const [newName, setNewName] = useState(userName);
   const [newPw, setNewPw] = useState('');
-  const [me, setMe] = useState<RankedMemberFull | null>(null);
+
+  const ranked = getRankedMembers();
+  const me = ranked.find(m => m.name === memberName);
 
   useEffect(() => {
     apiGetMatch().then(m => {
@@ -53,15 +56,11 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
       if (m) { setDate(m.date||''); setPlace(m.place||''); setStartTime(m.start_time||''); setEndTime(m.end_time||''); setMethod(m.method||''); }
     });
     if (isAdmin) apiGetUsers().then(setUsers);
-    apiGetStats().then(stats => {
-      const found = stats.find(m => m.name === memberName);
-      if (found) setMe(found);
-    });
-  }, [isAdmin, memberName]);
+  }, [isAdmin]);
 
   async function handleSaveMatch() {
     if (!date) { showToast('날짜를 입력해주세요'); return; }
-    try { await apiSaveMatch(date, place, startTime, endTime, method); showToast('경기 일정이 저장됐습니다!'); }
+    try { await apiSaveMatch(date, place, startTime, endTime, method); showToast('경기 일정이 저장되었습니다!'); }
     catch { showToast('저장 중 오류가 발생했습니다'); }
   }
 
@@ -74,7 +73,9 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
 
   async function handleNameSave(u: UserRecord, newName: string) {
     try {
+      // 이름 변경
       await apiUpdateProfile(u.id, newName, '');
+      // MEMBERS에 있는 이름이면 자동 매핑
       const matched = MEMBERS.includes(newName) ? newName : '';
       if (matched) await apiSetMapping(u.id, matched);
       showToast(`이름이 ${newName}으로 변경됐습니다!`);
@@ -96,26 +97,21 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
       <div className="screen-scroll">
         <div className="admin-section">
 
+          {/* MY INFO */}
           <div className="admin-card">
             <div className="admin-card-title">MY INFO</div>
             <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
-              {me && <Image src={`/images/${me.tier}.png`} alt={me.tier} width={44} height={44} style={{objectFit:'contain'}}/>}
+              {me && <Image src={getTierImage(me.tier)} alt={me.tier} width={44} height={44} style={{objectFit:'contain'}}/>}
               <div>
                 <div style={{fontSize:16,fontWeight:700,color:'var(--text)'}}>{memberName || userName}</div>
                 <div style={{fontSize:12,color:tierColor,marginTop:2}}>{tierName} · #{me?.rank}</div>
               </div>
             </div>
-            <div className="stats-row" style={{marginBottom:10}}>
+            <div className="stats-row" style={{marginBottom:14}}>
               <div className="stat-item"><div className="stat-num">{me?.attend||0}</div><div className="stat-label">출석 횟수</div></div>
-              <div className="stat-item"><div className="stat-num">{me ? me.rate+'%' : '0%'}</div><div className="stat-label">출석률</div></div>
+              <div className="stat-item"><div className="stat-num">{me?.rate||0}%</div><div className="stat-label">출석률</div></div>
               <div className="stat-item"><div className="stat-num">{me?.score||0}</div><div className="stat-label">총 점수</div></div>
             </div>
-            {me && (
-              <div style={{marginBottom:14,background:'rgba(232,200,74,0.06)',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <span style={{fontSize:12,color:'var(--sub)'}}>다음 출석 시 예상 점수</span>
-                <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:22,color:'var(--accent)'}}>{me.nextScore}점</span>
-              </div>
-            )}
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               <button className="admin-btn-secondary" onClick={() => setShowProfile(!showProfile)}>내 정보 변경</button>
               <button className="admin-btn-secondary" onClick={() => showToast('문의: happy.life.fc@gmail.com')}>문의</button>
@@ -132,6 +128,7 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
             )}
           </div>
 
+          {/* NEXT MATCH REGISTER - 관리자만 */}
           {isAdmin && (
             <div className="admin-card">
               <div className="admin-card-title">NEXT MATCH REGISTER</div>
@@ -149,11 +146,12 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
             </div>
           )}
 
+          {/* 멤버 관리 - 관리자만 */}
           {isAdmin && (
             <div className="admin-card">
               <div className="admin-card-title">MEMBER MANAGEMENT</div>
               <div style={{fontSize:11,color:'var(--sub)',marginBottom:12,lineHeight:1.6}}>
-                이름 수정 시 기존 출석 데이터와 자동 연결됩니다
+                이름을 수정하면 기존 출석 데이터와 자동 연결됩니다
               </div>
               {users.filter(u => u.id !== 'admin').map(u => (
                 <div key={u.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)',display:'flex',flexDirection:'column',gap:8}}>

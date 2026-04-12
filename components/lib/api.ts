@@ -90,14 +90,3 @@ export async function apiSetMapping(userId: string, memberName: string) {
   if (!res.ok) throw new Error(data.error);
   return data;
 }
-
-export interface RankedMemberFull {
-  name: string; attend: number; total: number; rate: number; score: number;
-  lastScore: number; nextScore: number; rank: number; tier: string;
-}
-
-export async function apiGetStats(): Promise<RankedMemberFull[]> {
-  const res = await fetch('/api/stats');
-  if (!res.ok) return [];
-  return res.json();
-}

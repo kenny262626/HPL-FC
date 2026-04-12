@@ -1,27 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { apiGetStats, RankedMemberFull } from '@/lib/api';
+import { getRankedMembers, getTierImage } from '@/lib/stats';
 import { MERCENARIES } from '@/lib/data';
+import { apiSetCoach } from '@/lib/api';
 import BottomNav from './BottomNav';
 
 type Screen = 'home' | 'vote' | 'team' | 'match' | 'admin';
+
 interface Props { isAdmin: boolean; onNavigate: (s: Screen) => void; showToast: (m: string) => void; }
 
 export default function TeamScreen({ isAdmin, onNavigate, showToast }: Props) {
-  const [ranked, setRanked] = useState<RankedMemberFull[]>([]);
-
-  useEffect(() => { apiGetStats().then(setRanked); }, []);
-
+  const ranked = getRankedMembers();
   const regular = ranked.filter(m => !MERCENARIES.includes(m.name));
   const mercs = ranked.filter(m => MERCENARIES.includes(m.name));
 
-  const renderRow = (m: RankedMemberFull, isMerc = false) => (
-    <div key={m.name} className="team-row">
-      <div className="rank-num">{isMerc ? '-' : m.rank}</div>
+  async function handleCoach(userId: string, name: string) {
+    // 실제 구현에서는 userId 필요 - 여기선 팀 화면에서 name 기반으로 처리
+    showToast(`${name} 코치 지정 기능은 MY 탭 관리자 메뉴에서 가능합니다`);
+  }
+
+  const renderRow = (m: ReturnType<typeof getRankedMembers>[0], isMerc = false) => (
+    <div key={m.name} className="team-row" onClick={() => isAdmin && handleCoach('', m.name)} style={{cursor: isAdmin ? 'pointer' : 'default'}}>
+      <div className="rank-num">{m.rank}</div>
       <div className="tier-badge">
-        <Image src={isMerc ? '/images/mercenary.png' : `/images/${m.tier}.png`} alt={m.tier} width={36} height={36} style={{objectFit:'contain'}}/>
+        <Image src={isMerc ? '/images/mercenary.png' : getTierImage(m.tier)} alt={m.tier} width={36} height={36} style={{objectFit:'contain'}}/>
       </div>
       <div className="member-info">
         <div className="member-name" style={{display:'flex',alignItems:'center',gap:6}}>
