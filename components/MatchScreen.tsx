@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { apiGetMatchHistory, apiUpdateMatch, MatchHistoryItem } from '@/lib/api';
+import { apiGetMatchHistory, apiUpdateMatch, apiDeleteMatch, MatchHistoryItem } from '@/lib/api';
 import { MEMBERS } from '@/lib/data';
 import BottomNav from './BottomNav';
 
@@ -34,6 +34,18 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
       scoreThem: m.score_them || 0,
       attendees: m.attendees || [], photos: m.photos || [],
     });
+  }
+
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+
+  async function handleDelete(id: number) {
+    try {
+      await apiDeleteMatch(id);
+      showToast('매치가 삭제됐습니다');
+      setConfirmDelete(null);
+      setEditId(null); setEdit(null);
+      apiGetMatchHistory().then(setMatches);
+    } catch { showToast('삭제 중 오류가 발생했습니다'); }
   }
 
   async function handleSave() {
@@ -205,6 +217,15 @@ export default function MatchScreen({ canEdit, onNavigate, showToast }: Props) {
                       <button onClick={handleSave} style={{flex:1,background:'linear-gradient(135deg,var(--gold),var(--gold2))',border:'none',borderRadius:10,padding:'10px',color:'#000',fontWeight:900,cursor:'pointer',fontSize:13}}>저장</button>
                       <button onClick={() => {setEditId(null);setEdit(null);}} style={{flex:1,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:'10px',color:'var(--sub)',cursor:'pointer',fontSize:13}}>취소</button>
                     </div>
+                    {confirmDelete === editId ? (
+                      <div style={{display:'flex',gap:8,marginTop:4}}>
+                        <span style={{flex:1,fontSize:12,color:'var(--sub)',display:'flex',alignItems:'center'}}>정말 삭제할까요?</span>
+                        <button onClick={() => handleDelete(editId!)} style={{background:'var(--red)',border:'none',borderRadius:10,padding:'10px 16px',color:'#fff',fontWeight:900,cursor:'pointer',fontSize:13}}>삭제</button>
+                        <button onClick={() => setConfirmDelete(null)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 12px',color:'var(--sub)',cursor:'pointer',fontSize:13}}>취소</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDelete(editId)} style={{width:'100%',marginTop:4,background:'transparent',border:'1px solid rgba(248,113,113,0.3)',borderRadius:10,padding:'8px',color:'var(--red)',cursor:'pointer',fontSize:12}}>매치 삭제</button>
+                    )}
                   </div>
                 )}
 

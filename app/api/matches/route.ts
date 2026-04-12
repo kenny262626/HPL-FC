@@ -23,3 +23,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (e) { console.error(e); return NextResponse.json({ error: '서버 오류' }, { status: 500 }); }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const sql = getDb();
+    const { id } = await req.json();
+    await sql`DELETE FROM match_history WHERE id=${id}`;
+    return NextResponse.json({ success: true });
+  } catch (e) { console.error(e); return NextResponse.json({ error: '서버 오류' }, { status: 500 }); }
+}

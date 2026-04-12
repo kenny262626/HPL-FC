@@ -101,3 +101,10 @@ export async function apiGetStats(): Promise<RankedMemberFull[]> {
   if (!res.ok) return [];
   return res.json();
 }
+
+export async function apiDeleteMatch(id: number) {
+  const res = await fetch('/api/matches', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || '삭제 실패');
+  return data;
+}
