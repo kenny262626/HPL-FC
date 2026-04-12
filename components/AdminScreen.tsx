@@ -8,10 +8,31 @@ import { MEMBERS } from '@/lib/data';
 import BottomNav from './BottomNav';
 
 type Screen = 'home' | 'vote' | 'team' | 'match' | 'admin';
-
 interface Props { userId: string; userName: string; memberName: string; role: string; onNavigate: (s: Screen) => void; onLogout: () => void; showToast: (m: string) => void; }
-
 interface UserRecord { id: string; name: string; role: string; mapped_member: string | null; }
+
+function NameEditor({ user, onSave }: { user: UserRecord; onSave: (name: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(user.name);
+  if (!editing) return (
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <span style={{fontSize:11,color:'var(--sub)'}}>이름:</span>
+      <span style={{fontSize:12,color:'var(--text)'}}>{user.name}</span>
+      {user.mapped_member && <span style={{fontSize:10,color:'var(--accent)'}}>→ {user.mapped_member}</span>}
+      <button onClick={() => setEditing(true)} style={{fontSize:11,padding:'3px 8px',borderRadius:6,border:'1px solid var(--border)',background:'var(--card2)',color:'var(--sub)',cursor:'pointer'}}>수정</button>
+    </div>
+  );
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:6}}>
+      <input value={val} onChange={e => setVal(e.target.value)}
+        style={{flex:1,background:'#1a1a1a',border:'1px solid var(--accent)',borderRadius:6,padding:'4px 8px',color:'var(--text)',fontSize:12}}/>
+      <button onClick={() => { onSave(val); setEditing(false); }}
+        style={{fontSize:11,padding:'3px 8px',borderRadius:6,border:'none',background:'linear-gradient(135deg,var(--gold),var(--gold2))',color:'#000',fontWeight:900,cursor:'pointer'}}>저장</button>
+      <button onClick={() => { setVal(user.name); setEditing(false); }}
+        style={{fontSize:11,padding:'3px 8px',borderRadius:6,border:'1px solid var(--border)',background:'var(--card2)',color:'var(--sub)',cursor:'pointer'}}>취소</button>
+    </div>
+  );
+}
 
 export default function AdminScreen({ userId, userName, memberName, role, onNavigate, onLogout, showToast }: Props) {
   const isAdmin = role === 'admin';
@@ -26,7 +47,6 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
   const [newName, setNewName] = useState(userName);
   const [newPw, setNewPw] = useState('');
 
-  // 내 랭킹/통계
   const ranked = getRankedMembers();
   const me = ranked.find(m => m.name === memberName);
 
@@ -51,9 +71,16 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
     catch { showToast('오류가 발생했습니다'); }
   }
 
-  async function handleMapping(u: UserRecord, memberName: string) {
-    try { await apiSetMapping(u.id, memberName); showToast('이름이 연결됐습니다!'); apiGetUsers().then(setUsers); }
-    catch { showToast('오류가 발생했습니다'); }
+  async function handleNameSave(u: UserRecord, newName: string) {
+    try {
+      // 이름 변경
+      await apiUpdateProfile(u.id, newName, '');
+      // MEMBERS에 있는 이름이면 자동 매핑
+      const matched = MEMBERS.includes(newName) ? newName : '';
+      if (matched) await apiSetMapping(u.id, matched);
+      showToast(`이름이 ${newName}으로 변경됐습니다!`);
+      apiGetUsers().then(setUsers);
+    } catch { showToast('오류가 발생했습니다'); }
   }
 
   async function handleSaveProfile() {
@@ -123,8 +150,11 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
           {isAdmin && (
             <div className="admin-card">
               <div className="admin-card-title">MEMBER MANAGEMENT</div>
+              <div style={{fontSize:11,color:'var(--sub)',marginBottom:12,lineHeight:1.6}}>
+                이름을 수정하면 기존 출석 데이터와 자동 연결됩니다
+              </div>
               {users.filter(u => u.id !== 'admin').map(u => (
-                <div key={u.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)',display:'flex',flexDirection:'column',gap:6}}>
+                <div key={u.id} style={{padding:'10px 0',borderBottom:'1px solid var(--border)',display:'flex',flexDirection:'column',gap:8}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     <div>
                       <span style={{fontSize:13,color:'var(--text)',fontWeight:700}}>{u.name}</span>
@@ -136,14 +166,7 @@ export default function AdminScreen({ userId, userName, memberName, role, onNavi
                       {u.role === 'coach' ? '코치 해제' : '코치 지정'}
                     </button>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:11,color:'var(--sub)'}}>매핑:</span>
-                    <select defaultValue={u.mapped_member || ''} onChange={e => handleMapping(u, e.target.value)}
-                      style={{flex:1,background:'#1a1a1a',border:'1px solid var(--border)',borderRadius:8,padding:'4px 8px',color:'var(--text)',fontSize:12}}>
-                      <option value="">-- 연결 없음 --</option>
-                      {MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
+                  <NameEditor user={u} onSave={(name) => handleNameSave(u, name)}/>
                 </div>
               ))}
             </div>
