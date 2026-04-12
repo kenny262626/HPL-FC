@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const prev = await sql`SELECT * FROM next_match WHERE id = 1`;
     if (prev.length > 0 && prev[0].date) {
       const votes = await sql`SELECT member_name FROM votes WHERE vote_type = 'attend'`;
-      const attendees = votes.map((v: {member_name: string}) => v.member_name);
+      const attendees = votes.map((v: Record<string, string>) => v.member_name);
       await sql`INSERT INTO match_history (date, place, start_time, end_time, method, attendees)
         VALUES (${prev[0].date}, ${prev[0].place}, ${prev[0].start_time}, ${prev[0].end_time}, ${prev[0].method}, ${attendees})
         ON CONFLICT DO NOTHING`;
