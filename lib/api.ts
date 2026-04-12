@@ -1,61 +1,93 @@
-// 로그인
+// ===== AUTH =====
 export async function apiLogin(id: string, pw: string) {
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, pw }),
-  });
+  const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id,pw}) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || '로그인 실패');
-  return data as { id: string; name: string };
+  return data as { id: string; name: string; role: string; mappedMember: string | null };
 }
 
-// 회원가입
 export async function apiSignup(id: string, name: string, pw: string) {
-  const res = await fetch('/api/auth/signup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, name, pw }),
-  });
+  const res = await fetch('/api/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id,name,pw}) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || '회원가입 실패');
   return data;
 }
 
-// 투표 목록 조회
+export async function apiUpdateProfile(userId: string, name: string, pw: string) {
+  const res = await fetch('/api/user/profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId,name,pw}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || '수정 실패');
+  return data;
+}
+
+// ===== VOTES =====
 export async function apiGetVotes(): Promise<Record<string, string>> {
   const res = await fetch('/api/votes');
   if (!res.ok) return {};
   return res.json();
 }
 
-// 투표 등록
 export async function apiCastVote(memberName: string, voteType: 'attend' | 'absent') {
-  const res = await fetch('/api/votes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ memberName, voteType }),
-  });
+  const res = await fetch('/api/votes', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({memberName,voteType}) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || '투표 실패');
   return data;
 }
 
-// 다음 경기 조회
-export async function apiGetMatch() {
-  const res = await fetch('/api/match');
-  if (!res.ok) return null;
-  return res.json() as Promise<{ date: string; place: string; time: string; method: string } | null>;
+// ===== MATCH =====
+export interface NextMatchData {
+  date: string; place: string; start_time: string; end_time: string; method: string;
 }
 
-// 다음 경기 저장
-export async function apiSaveMatch(date: string, place: string, time: string, method: string) {
-  const res = await fetch('/api/match', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ date, place, time, method }),
-  });
+export async function apiGetMatch(): Promise<NextMatchData | null> {
+  const res = await fetch('/api/match');
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function apiSaveMatch(date: string, place: string, startTime: string, endTime: string, method: string) {
+  const res = await fetch('/api/match', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({date,place,startTime,endTime,method}) });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || '저장 실패');
+  return data;
+}
+
+// ===== MATCH HISTORY =====
+export interface MatchHistoryItem {
+  id: number; date: string; place: string; start_time: string; end_time: string;
+  method: string; score_us: number; score_them: number; attendees: string[]; photos: string[];
+}
+
+export async function apiGetMatchHistory(): Promise<MatchHistoryItem[]> {
+  const res = await fetch('/api/matches');
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function apiUpdateMatch(id: number, scoreUs: number, scoreThem: number, photos: string[]) {
+  const res = await fetch('/api/matches', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id,scoreUs,scoreThem,photos}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || '수정 실패');
+  return data;
+}
+
+// ===== ADMIN =====
+export async function apiGetUsers() {
+  const res = await fetch('/api/admin/users');
+  if (!res.ok) return [];
+  return res.json() as Promise<{id:string;name:string;role:string;mapped_member:string|null}[]>;
+}
+
+export async function apiSetCoach(userId: string, isCoach: boolean) {
+  const res = await fetch('/api/admin/users', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId,isCoach}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+}
+
+export async function apiSetMapping(userId: string, memberName: string) {
+  const res = await fetch('/api/admin/mapping', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId,memberName}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
   return data;
 }

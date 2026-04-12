@@ -2,6 +2,10 @@ export const MEMBERS = [
   '강태훈','김성진','김종원','박재현','박준혁','오승엽','오승영','유승한','이도훈','진대철','홍강현','김연호','최상원'
 ];
 
+export const MERCENARIES = ['박준혁'];
+
+export const ADMIN_MEMBER_NAME = '강태훈';
+
 export interface RawRecord {
   name: string;
   date: string;
