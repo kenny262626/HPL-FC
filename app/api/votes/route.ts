@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql, initDB } from '@/lib/db';
+import { getDb, initDB } from '@/lib/db';
 
-// GET: 전체 투표 현황 조회
 export async function GET() {
   try {
     await initDB();
+    const sql = getDb();
     const result = await sql`SELECT member_name, vote_type FROM votes`;
     const votes: Record<string, string> = {};
-    result.rows.forEach((r) => {
-      votes[r.member_name] = r.vote_type;
-    });
+    result.forEach((r) => { votes[r.member_name] = r.vote_type; });
     return NextResponse.json(votes);
   } catch (e) {
     console.error(e);
@@ -17,10 +15,10 @@ export async function GET() {
   }
 }
 
-// POST: 투표 등록/변경
 export async function POST(req: NextRequest) {
   try {
     await initDB();
+    const sql = getDb();
     const { memberName, voteType } = await req.json();
 
     if (!memberName || !['attend', 'absent'].includes(voteType)) {
@@ -40,10 +38,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE: 경기 변경 시 투표 초기화
 export async function DELETE() {
   try {
     await initDB();
+    const sql = getDb();
     await sql`DELETE FROM votes`;
     return NextResponse.json({ success: true });
   } catch (e) {

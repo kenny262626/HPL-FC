@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql, initDB } from '@/lib/db';
+import { getDb, initDB } from '@/lib/db';
 
-// GET: 다음 경기 조회
 export async function GET() {
   try {
     await initDB();
+    const sql = getDb();
     const result = await sql`SELECT date, place, time, method FROM next_match WHERE id = 1`;
-    if (result.rows.length === 0) return NextResponse.json(null);
-    return NextResponse.json(result.rows[0]);
+    if (result.length === 0) return NextResponse.json(null);
+    return NextResponse.json(result[0]);
   } catch (e) {
     console.error(e);
     return NextResponse.json(null, { status: 500 });
   }
 }
 
-// POST: 다음 경기 저장 (관리자)
 export async function POST(req: NextRequest) {
   try {
     await initDB();
+    const sql = getDb();
     const { date, place, time, method } = await req.json();
 
     if (!date) return NextResponse.json({ error: '날짜를 입력해주세요' }, { status: 400 });
@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
         date = ${date}, place = ${place}, time = ${time}, method = ${method}, updated_at = NOW()
     `;
 
-    // 투표 초기화
     await sql`DELETE FROM votes`;
 
     return NextResponse.json({ success: true });
