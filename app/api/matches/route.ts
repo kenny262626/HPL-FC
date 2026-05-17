@@ -34,3 +34,14 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (e) { console.error(e); return NextResponse.json({ error: '서버 오류' }, { status: 500 }); }
 }
+export async function POST(req: NextRequest) {
+  try {
+    await initDB();
+    const sql = getDb();
+    const { date, place, startTime, endTime, method, scoreUs, scoreDraw, scoreThem, attendees } = await req.json();
+    if (!date) return NextResponse.json({ error: '날짜를 입력해주세요' }, { status: 400 });
+    await sql`INSERT INTO match_history (date, place, start_time, end_time, method, score_us, score_draw, score_them, attendees, photos)
+      VALUES (${date}, ${place||''}, ${startTime||''}, ${endTime||''}, ${method||''}, ${scoreUs||0}, ${scoreDraw||0}, ${scoreThem||0}, ${attendees||[]}, ARRAY[]::TEXT[])`;
+    return NextResponse.json({ success: true });
+  } catch (e) { console.error(e); return NextResponse.json({ error: '서버 오류' }, { status: 500 }); }
+}

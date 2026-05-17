@@ -108,3 +108,13 @@ export async function apiDeleteMatch(id: number) {
   if (!res.ok) throw new Error(data.error || '삭제 실패');
   return data;
 }
+export async function apiAddMatch(
+  date: string, place: string, startTime: string, endTime: string,
+  method: string, scoreUs: number, scoreDraw: number, scoreThem: number, attendees: string[]
+) {
+  const res = await fetch('/api/matches', { method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({date,place,startTime,endTime,method,scoreUs,scoreDraw,scoreThem,attendees}) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || '추가 실패');
+  return data;
+}
